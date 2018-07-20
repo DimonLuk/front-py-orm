@@ -4,7 +4,7 @@ import copy
 
 
 def get(table_name):
-    def inner(self, keys):
+    def inner(self, **keys):
         execute_str = """SELECT * FROM %s WHERE """
         components = []
         components.append(table_name)
@@ -32,7 +32,7 @@ def get(table_name):
     return inner
 
 
-class Model(type):
+class ModelMeta(type):
     def __new__(cls, name, bases, dct):
         dct["__qualname__"] = "{0}__model".format(dct["__qualname__"])
         dct_ = copy.deepcopy(dct)
@@ -73,14 +73,15 @@ class Model(type):
             file.write(",".join(fields_arr))
         connection.commit()
         connection.close()
-        return super(Model, cls).__new__(cls, name, bases, dct_)
+        return super(ModelMeta, cls).__new__(cls, name, bases, dct_)
 
 
-class Person(metaclass=Model):
+class Person(metaclass=ModelMeta):
     name = Types.text()
     fullname = Types.text()
     age = Types.int()
 
 
 t = Person()
-print(t.get_by({"name": "Dima"}))
+print(t.get_by(name="Dima"))
+

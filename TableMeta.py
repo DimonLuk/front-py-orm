@@ -1,225 +1,86 @@
-import exceptions as e
+from Types import Types
+import sqlite3
+import copy
+
+
+def get(table_name):
+    def inner(self, keys):
+        execute_str = """SELECT * FROM %s WHERE """
+        components = []
+        components.append(table_name)
+        for i in keys:
+            try:
+                float(keys[i])
+                execute_str += "%s=%s AND"
+                components.append(i)
+                components.append(float(keys[i]))
+            except ValueError:
+                execute_str += "%s='%s' AND "
+                components.append(i)
+                components.append(keys[i])
+        execute_str = execute_str[:-4]
+        print(execute_str)
+        print(components)
+        execute_str = execute_str % tuple(components)
+        print(execute_str)
+        connection = sqlite3.connect("data.db")
+        cursor = connection.cursor()
+        cursor.execute(execute_str.format(*components))
+        res = cursor.fetchall()
+        connection.close()
+        return res
+    return inner
 
 
 class Model(type):
     def __new__(cls, name, bases, dct):
-        print(dct)
+        dct["__qualname__"] = "{0}__model".format(dct["__qualname__"])
+        dct_ = copy.deepcopy(dct)
+        name = name+"__model"
+        flag = False
+        try:
+            with open(name+"__info.data", "r") as file:
+                fields = file.read()
+        except FileNotFoundError:
+            fields = ""
+            flag = True
+        if fields != "":
+            fields_arr = fields.split(",")
+        else:
+            fields_arr = []
+        add_column_flag = False
+        items_to_add = []
         create_str = """CREATE TABLE IF NOT EXISTS {0} (""".format(dct["__qualname__"])
         for item in dct:
             if not item.startswith("__"):
                 create_str += "{0} {1},".format(item, dct[item])
+                if flag:
+                    fields_arr.append(item)
+                if fields_arr != [] and item not in fields_arr:
+                    add_column_flag = True
+                    fields_arr.append(item)
+                    items_to_add.append(item)
+        dct_["get_by"] = get(name)
         create_str = create_str[:-1] + ")"
-        print(create_str)
-        return super(Model, cls).__new__(cls, name, bases, dct)
-
-
-class Types:
-    @staticmethod
-    def int(byte_size=0, nullable=False):
-        res = ""
-        if byte_size == 0:
-            res = "INT"
-        elif byte_size == 8:
-            res = "INT"+str(byte_size)
-        elif byte_size == 2:
-            res = "INT"+str(byte_size)
-        else:
-            raise e.InvalidDataTypeException("Invalid data type")
-        if nullable:
-            return res
-        else:
-            return res + "NOT NULL"
-
-    @staticmethod
-    def integer(nullable=False):
-        if nullable:
-            return "INTEGER"
-        else:
-            return "INTEGER NOT NULL"
-
-    @staticmethod
-    def tiny_int(nullable=False):
-        if nullable:
-            return "TINYINT"
-        else:
-            return "TINYINT NOT NULL"
-
-    @staticmethod
-    def small_int(nullable=False):
-        if nullable:
-            return "SMALLINT"
-        else:
-            return "SMALLINT NOT NULL"
-
-    @staticmethod
-    def medium_int(nullable=False):
-        if nullable:
-            return "MEDIUMINT"
-        else:
-            return "MEDIUMINT NOT NULL"
-
-    @staticmethod
-    def big_int(nullable=False):
-        if nullable:
-            return "BIGINT"
-        else:
-            return "BIGINT NOT NULL"
-
-    @staticmethod
-    def unsigned_big_int(nullable=False):
-        if nullable:
-            return "UNSIGNED BIG INT"
-        else:
-            return "UNSIGNED BIG INT NOT NULL"
-
-    @staticmethod
-    def character(size, nullable=False):
-        if size <= 0 or size > 20:
-            raise e.InvalidDataTypeException("Invalid size, has to be between 1 and 20")
-        else:
-            if nullable:
-                return "CHARACTER({0})".format(str(size))
-            else:
-                return "CHARACTER({0}) NOT NULL".format(str(size))
-
-    @staticmethod
-    def var_char(size, nullable=False):
-        if size <= 0 or size > 255:
-            raise e.InvalidDataTypeException("Invalid size, has to be between 1 and 255")
-        else:
-            if nullable:
-                return "VARCHAR({0})".format(str(size))
-            else:
-                return "VARCHAR({0}) NOT NULL".format(str(size))
-
-    @staticmethod
-    def varying_character(size, nullable=False):
-        if size <= 0 or size > 255:
-            raise e.InvalidDataTypeException("Invalid size, has to be between 1 and 255")
-        else:
-            if nullable:
-                return "VARYING CHAR({0})".format(str(size))
-            else:
-                "VARYING CHAR({0}) NOT NULL".format(str(size))
-
-    @staticmethod
-    def nchar(size, nullable=False):
-        if size <= 0 or size > 55:
-            raise e.InvalidDataTypeException("Invalid size, has to be between 1 and 55")
-        else:
-            if nullable:
-                return "NCHAR({0})".format(str(size))
-            else:
-                return "NCHAR({0}) NOT NULL".format(str(size))
-
-    @staticmethod
-    def native_character(size, nullable=False):
-        if size <= 0 or size > 70:
-            raise e.InvalidDataTypeException("Invalid size, has to be between 1 and 70")
-        else:
-            if nullable:
-                return "NATIVE CHARACTER({0})".format(str(size))
-            else:
-                return "NATIVE CHARACTER({0}) NOT NULL".format(str(size))
-
-    @staticmethod
-    def n_var_char(size, nullable=False):
-        if size <= 0 or size > 100:
-            raise e.InvalidDataTypeException("Invalid size, has to be between 1 and 100")
-        else:
-            if nullable:
-                return "NVARCHAR({0})".format(str(size))
-            else:
-                return "NVARCHAR({0}) NOT NULL".format(str(size))
-
-    @staticmethod
-    def text(nullable=False):
-        if nullable:
-            return "TEXT"
-        else:
-            return "TEXT NOT NULL"
-
-    @staticmethod
-    def clob(nullable=False):
-        if nullable:
-            return "CLOB"
-        else:
-            return "CLOB NOT NULL"
-
-    @staticmethod
-    def blob(nullable=False):
-        if nullable:
-            return "BLOB"
-        else:
-            return "BLOB NOT NULL"
-
-    @staticmethod
-    def real(nullable=False):
-        if nullable:
-            return "REAL"
-        else:
-            return "REAL NOT NULL"
-
-    @staticmethod
-    def double(nullable=False):
-        if nullable:
-            return "DOUBLE"
-        else:
-            return "DOUBLE NOT NULL"
-
-    @staticmethod
-    def double_precision(nullable=False):
-        if nullable:
-            return "DOUBLE PRECISION"
-        else:
-            return "DOUBLE PRECISION NOT NULL"
-
-    @staticmethod
-    def float(nullable=False):
-        if nullable:
-            return "FLOAT"
-        else:
-            return "FLOAT NOT NULL"
-
-    @staticmethod
-    def numeric(nullable=False):
-        if nullable:
-            return "NUMERIC"
-        else:
-            return "NUMERIC NOT NULL"
-
-    @staticmethod
-    def decimal(int_size, float_size, nullable=False):
-        if nullable:
-            return "DECIMAL({0}, {1})".format(int_size, float_size)
-        else:
-            return "DECIMAL({0}, {1}) NOT NULL".format(int_size, float_size)
-
-    @staticmethod
-    def boolean(nullable=False):
-        if nullable:
-            return "BOOLEAN"
-        else:
-            return "BOOLEAN NOT NULL"
-
-    @staticmethod
-    def date(nullable=False):
-        if nullable:
-            return "DATE"
-        else:
-            return "DATE NOT NULL"
-
-    @staticmethod
-    def date_time(nullable=False):
-        if nullable:
-            return "DATETIME"
-        else:
-            return "DATETIME NOT NULL"
+        connection = sqlite3.connect("data.db")
+        cursor = connection.cursor()
+        cursor.execute(create_str)
+        if add_column_flag:
+            for i in items_to_add:
+                add_column_str = """ALTER TABLE {0} ADD COLUMN {1} '{2}'""".format(name, i, dct_[i])
+                cursor.execute(add_column_str)
+        with open(name+"__info.data", "w") as file:
+            file.write(",".join(fields_arr))
+        connection.commit()
+        connection.close()
+        return super(Model, cls).__new__(cls, name, bases, dct_)
 
 
 class Person(metaclass=Model):
     name = Types.text()
     fullname = Types.text()
+    age = Types.int()
 
 
 t = Person()
+print(t.get_by({"name": "Dima"}))

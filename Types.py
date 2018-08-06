@@ -16,7 +16,7 @@ class Types:
         if nullable:
             return res
         else:
-            return res + "NOT NULL"
+            return res + " NOT NULL"
 
     @staticmethod
     def integer(nullable=False):

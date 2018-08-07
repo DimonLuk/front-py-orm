@@ -1,11 +1,14 @@
-import sqlite3
+from front_py_orm import config, Model
+from Types import Types
+
+config["storage_directory"] = "/home/dimonlu/storage_test"
 
 
-con = sqlite3.connect("data2.db")
-c = con.cursor()
+class Person(Model):
+    name = Types.text()
+    fullname = Types.text()
 
-# c.execute("INSERT INTO Person__model (__uid__, name, fullname, age) VALUES ('hash', 'Dima', 'Test', 18)")
-# con.commit()
 
-c.execute("SELECT * FROM Person__model")
-print(c.fetchall())
+p = Person()
+person = p.get_by(name="test")
+print(person.fullname)

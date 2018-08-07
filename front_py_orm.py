@@ -2,11 +2,13 @@ import copy
 import datetime
 import hashlib
 import sqlite3
-
 from Types import Types
+import os
+
 
 config = {
-    "db_path": "data3.db",
+    "db_file_name": "data3.db",
+    "storage_directory": "/home/dimonlu/PycharmProjects/front-py-orm/storage",
     "username": "",
     "password": ""
 }
@@ -15,11 +17,13 @@ config = {
 class DBConnection:
 
     def __init__(self):
-        self.db_name = config["db_path"]
+        self.db_name = config["db_file_name"]
         self.username = config["username"]
         self.password = config["password"]
 
     def __enter__(self):
+        self.cwd = os.getcwd()
+        os.chdir(config["storage_directory"])
         self.connection = sqlite3.connect(self.db_name)
         self.cursor = self.connection.cursor()
         return self.cursor
@@ -27,6 +31,7 @@ class DBConnection:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.connection.commit()
         self.connection.close()
+        os.chdir(self.cwd)
 
 
 
@@ -92,7 +97,7 @@ class ModelMeta(type):
         name = name+"__model"
         flag = False
         try:
-            with open(name+"__info.data", "r") as file:
+            with open(os.path.join(config["storage_directory"], name+"__info.data"), "r") as file:
                 fields = file.read()
         except FileNotFoundError:
             fields = ""
@@ -122,7 +127,7 @@ class ModelMeta(type):
                     for i in items_to_add:
                         add_column_str = """ALTER TABLE {0} ADD COLUMN {1} '{2}'""".format(name, i, dct_[i])
                         cursor.execute(add_column_str)
-                with open(name+"__info.data", "w") as file:
+                with open(os.path.join(config["storage_directory"], name+"__info.data"), "w") as file:
                     file.write(",".join(fields_arr))
         except sqlite3.OperationalError:
             pass
@@ -152,14 +157,3 @@ class Model(metaclass=ModelMeta):
                 inner(i)
         else:
             inner(obj)
-
-
-class Person(Model):
-    name = Types.text()
-    fullname = Types.text()
-    age = Types.int()
-
-
-t = Person()
-result = t.get_by(age=21)
-

@@ -5,13 +5,19 @@ import sqlite3
 
 from Types import Types
 
+config = {
+    "db_path": "data3.db",
+    "username": "",
+    "password": ""
+}
+
 
 class DBConnection:
 
-    def __init__(self, db_name="data.db", username="", password=""):
-        self.db_name = db_name
-        self.username = username
-        self.password = password
+    def __init__(self):
+        self.db_name = config["db_path"]
+        self.username = config["username"]
+        self.password = config["password"]
 
     def __enter__(self):
         self.connection = sqlite3.connect(self.db_name)
@@ -21,6 +27,8 @@ class DBConnection:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.connection.commit()
         self.connection.close()
+
+
 
 
 def get_value(self, name):
@@ -108,7 +116,7 @@ class ModelMeta(type):
         dct_["get_by"] = get(name)
         try:
             create_str = create_str[:-1] + ")"
-            with DBConnection as cursor:
+            with DBConnection() as cursor:
                 cursor.execute(create_str)
                 if add_column_flag:
                     for i in items_to_add:
@@ -124,20 +132,26 @@ class ModelMeta(type):
 
 class Model(metaclass=ModelMeta):
     def add(self, obj):
-        with DBConnection() as cursor:
-            to_execute = "INSERT INTO {0} (".format(type(self).__name__)
-            hash_ = str(hashlib.sha256((str(datetime.datetime.now())+str(obj)).encode("utf-8")).hexdigest())
-            obj["__uid__"] = hash_
-            for key in obj:
-                to_execute += key + ","
-            to_execute = to_execute[:-1] + ") VALUES ("
-            for key in obj:
-                if type(obj[key]) != float and type(obj[key]) != int:
-                    to_execute += "'" + str(obj[key]) + "'" + ","
-                else:
-                    to_execute += str(obj[key])+","
-            to_execute = to_execute[:-1] + ")"
-            cursor.execute(to_execute)
+        def inner(obj_):
+            with DBConnection() as cursor:
+                to_execute = "INSERT INTO {0} (".format(type(self).__name__)
+                hash_ = str(hashlib.sha256((str(datetime.datetime.now())+str(obj_)).encode("utf-8")).hexdigest())
+                obj_["__uid__"] = hash_
+                for key in obj_:
+                    to_execute += key + ","
+                to_execute = to_execute[:-1] + ") VALUES ("
+                for key in obj_:
+                    if type(obj_[key]) != float and type(obj_[key]) != int:
+                        to_execute += "'" + str(obj_[key]) + "'" + ","
+                    else:
+                        to_execute += str(obj_[key])+","
+                to_execute = to_execute[:-1] + ")"
+                cursor.execute(to_execute)
+        if type(obj) == list:
+            for i in obj:
+                inner(i)
+        else:
+            inner(obj)
 
 
 class Person(Model):
@@ -147,6 +161,5 @@ class Person(Model):
 
 
 t = Person()
-obj = t.get_by(fullname="Lets")
-print(obj.__uid__)
+result = t.get_by(age=21)
 

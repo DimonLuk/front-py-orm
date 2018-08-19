@@ -32,8 +32,6 @@ class DBConnection:
         os.chdir(self.cwd)
 
 
-
-
 def get_value(self, name):
     with DBConnection() as cursor:
         result = cursor.execute("""SELECT * FROM {0} where {1}='{2}'"""

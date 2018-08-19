@@ -1,10 +1,8 @@
 import copy
 import datetime
 import hashlib
-import sqlite3
-from Types import Types
 import os
-
+import sqlite3
 
 config = {
     "db_file_name": "data3.db",
@@ -32,8 +30,6 @@ class DBConnection:
         self.connection.commit()
         self.connection.close()
         os.chdir(self.cwd)
-
-
 
 
 def get_value(self, name):
